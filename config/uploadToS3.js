@@ -15,7 +15,7 @@ const secretsManagerClient = new SecretsManagerClient({
 // ✅ Fetch AWS credentials and config
 const getAwsCredentials = async () => {
   const command = new GetSecretValueCommand({
-    SecretId: "alex-src",
+    SecretId: "color-secret",
   });
 
   const data = await secretsManagerClient.send(command);

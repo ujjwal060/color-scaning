@@ -5,15 +5,17 @@ import {
   loginUser,
   forgotPassword,
   resetPassword,
-  getProfile
+  getProfile,
+  updateProfileImage
 } from "../userController/userAuth.js";
 import { protect } from "../middelwares/auth.middleware.js";
 import uploadToS3  from "../config/uploadToS3.js";
 
 const router = express.Router();
 
-router.post("/signup/request-otp",uploadToS3, signup);  // step 1
-router.post("/signup/verify-otp", verifySignupOtp);    // step 2
+router.post("/signup/request-otp",uploadToS3, signup);  
+router.post("/signup/verify-otp", verifySignupOtp);    
+router.put("/update-profile",protect,uploadToS3, updateProfileImage);    
 
 router.post("/login", loginUser);
 

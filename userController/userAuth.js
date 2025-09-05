@@ -14,7 +14,7 @@ const generateToken = (id) => {
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const profile = req.fileLocations;
+    const profile = req.fileLocations[0];
 
     const userExists = await User.findOne({ email });
     if (userExists)
@@ -45,7 +45,7 @@ export const signup = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
-};
+}
 
 export const verifySignupOtp = async (req, res) => {
   try {
@@ -70,6 +70,34 @@ export const verifySignupOtp = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+export const updateProfileImage = async (req, res) => {
+  try {
+    const userId = req.user.id; // from auth middleware
+    const profile = req.fileLocations ? req.fileLocations[0] : null;
+
+    if (!profile) {
+      return res.status(400).json({ message: "No profile image uploaded" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.profile = profile;
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile image updated successfully",
+      profile: user.profile,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 
 export const loginUser = async (req, res) => {
   try {
