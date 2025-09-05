@@ -11,5 +11,5 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api",routes)
 connectToDB()
 app.listen(config.PORT,()=>{
-    console.log(`serveer is up and running at PORT: ${config.PORT}`)
+    console.log(`server is up and running at PORT: ${config.PORT}`)
 })
