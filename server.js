@@ -6,6 +6,8 @@ const app=express()
 const config =await loadConfig()
 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
+// app.use()
 app.use("/api",routes)
 connectToDB()
 app.listen(config.PORT,()=>{
