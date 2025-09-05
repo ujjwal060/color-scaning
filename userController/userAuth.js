@@ -14,7 +14,7 @@ const generateToken = (id) => {
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const profile = req.fileLocations[0];
+    const profile = req.fileLocations;
 
     const userExists = await User.findOne({ email });
     if (userExists)

@@ -32,7 +32,7 @@ const loadConfig = async () => {
           EMAIL_PASS: secrets.EMAIL_PASS,
           AWS_ACCESS_KEY_ID: secrets.AWS_ACCESS_KEY_ID,
           AWS_SECRET_ACCESS_KEY: secrets.AWS_SECRET_ACCESS_KEY,
-          S3_BUCKET: "ujjwal-s3-85",
+          AWS_S3_BUCKET_NAME: "ujjwal-s3-85",
         };
       }
 
@@ -56,7 +56,7 @@ const loadConfig = async () => {
     EMAIL_PASS: process.env.EMAIL_PASS,
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-    S3_BUCKET: process.env.AWS_S3_BUCKET_NAME || "invoice-bucket-rtyu",
+    AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME || "invoice-bucket-rtyu",
   };
 };
 

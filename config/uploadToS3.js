@@ -9,7 +9,7 @@ import {
 dotenv.config();
 
 const secretsManagerClient = new SecretsManagerClient({
-  region: "us-east-1", // Secrets Manager region
+  region: "us-east-1",
 });
 
 // ✅ Fetch AWS credentials and config
@@ -47,12 +47,11 @@ const getS3Client = async () => {
 
   return { s3Client, config: credentials };
 };
+
 const storage = multer.memoryStorage();
-
 const upload = multer({ storage }).fields([
-  { name: "files", maxCount: 10 }, // accept multiple files under "files"
+  { name: "files", maxCount: 10 }, // allow up to 10 files
 ]);
-
 
 const uploadToS3 = async (req, res, next) => {
   upload(req, res, async (err) => {
@@ -84,7 +83,7 @@ const uploadToS3 = async (req, res, next) => {
         fileLocations.push(fileUrl);
       }
 
-      req.fileLocations = fileLocations;
+      req.fileLocations = fileLocations; // store uploaded file URLs
       next();
     } catch (uploadError) {
       console.error("Upload Error:", uploadError);
@@ -94,6 +93,5 @@ const uploadToS3 = async (req, res, next) => {
     }
   });
 };
-
 
 export default uploadToS3;
