@@ -1,8 +1,13 @@
 import express from "express";
-import { adminLogin } from "../adminController/adminAuth.js";
+import { registerAdmin, adminLogin, forgotPassword, verifyOtp, setPassword } from "../adminController/adminAuth.js";
+import { adminAuth } from "../middelwares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/admin-login", adminLogin);
+router.post("/login", adminLogin);
+router.post("/register", registerAdmin);
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-otp", verifyOtp);
+router.post("/set-password", adminAuth, setPassword);
 
 export default router;

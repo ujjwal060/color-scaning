@@ -8,7 +8,7 @@ import sendEmail from "../config/sendmail.js";
 const config = await loadConfig();
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, config.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
+  return jwt.sign({ id }, config.ACCESS_TOKEN_SECRET, { expiresIn: "30d" });
 };
 
 export const signup = async (req, res) => {
