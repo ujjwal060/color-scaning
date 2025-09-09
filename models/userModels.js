@@ -12,6 +12,7 @@ const userSchema = new Schema(
       trim: true,
     },
     password: { type: String, minlength: 6 },
+    phoneNo: { type: String, minlength: 10, maxlength: 12 },
     profile: { type: String },
 
     signupOtp: String,

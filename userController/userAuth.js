@@ -11,14 +11,19 @@ const generateToken = (id) => {
   return jwt.sign({ id }, config.ACCESS_TOKEN_SECRET, { expiresIn: "30d" });
 };
 
+// ---------------- Signup ----------------
 export const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    const profile = req.fileLocations[0];
+    const { name, email, password, phoneNo } = req.body;
+    const profile = req.fileLocations?.[0];
 
-    const userExists = await User.findOne({ email });
-    if (userExists)
-      return res.status(400).json({ message: "User already exists" });
+    // ✅ Check if email or phone already exists
+    const userExists = await User.findOne({ $or: [{ email }, { phoneNo }] });
+    if (userExists) {
+      const conflictField =
+        userExists.email === email ? "Email" : "Phone number";
+      return res.status(400).json({ message: `${conflictField} already exists` });
+    }
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -27,10 +32,11 @@ export const signup = async (req, res) => {
     const user = await User.create({
       name,
       email,
+      phoneNo,
       password,
       profile,
-      resetOtp: hashedOtp,
-      resetOtpExpire: Date.now() + 10 * 60 * 1000, // 10 min
+      signupOtp: hashedOtp,
+      signupOtpExpire: Date.now() + 10 * 60 * 1000, // 10 min
     });
 
     // Send OTP via email
@@ -45,8 +51,9 @@ export const signup = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
-}
+};
 
+// ---------------- Verify Signup OTP ----------------
 export const verifySignupOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -56,12 +63,12 @@ export const verifySignupOtp = async (req, res) => {
 
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    if (user.resetOtp !== hashedOtp || user.resetOtpExpire < Date.now()) {
+    if (user.signupOtp !== hashedOtp || user.signupOtpExpire < Date.now()) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    user.resetOtp = undefined;
-    user.resetOtpExpire = undefined;
+    user.signupOtp = undefined;
+    user.signupOtpExpire = undefined;
     user.isVerified = true;
     await user.save();
 
@@ -71,6 +78,7 @@ export const verifySignupOtp = async (req, res) => {
   }
 };
 
+// ---------------- Update Profile Image ----------------
 export const updateProfileImage = async (req, res) => {
   try {
     const userId = req.user.id; // from auth middleware
@@ -98,7 +106,7 @@ export const updateProfileImage = async (req, res) => {
   }
 };
 
-
+// ---------------- Login ----------------
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -118,6 +126,7 @@ export const loginUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phoneNo: user.phoneNo,
       profile: user.profile,
       token: generateToken(user._id),
     });
@@ -126,6 +135,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// ---------------- Forgot Password ----------------
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -151,6 +161,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+// ---------------- Reset Password ----------------
 export const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -172,11 +183,13 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// ---------------- Get Profile ----------------
 export const getProfile = async (req, res) => {
   res.json({
     _id: req.user._id,
     name: req.user.name,
     email: req.user.email,
+    phoneNo: req.user.phoneNo,
     profile: req.user.profile,
   });
 };
