@@ -1,15 +1,25 @@
-import express from "express"
-import routes from "./routes/index.routes.js"
-import { loadConfig } from "./config/loadConfig.js"
-import connectToDB from "./config/db.js"
-const app=express()
-const config =await loadConfig()
+import express from "express";
+import routes from "./routes/index.routes.js";
+import { loadConfig } from "./config/loadConfig.js";
+import connectToDB from "./config/db.js";
+import cors from "cors";
 
-app.use(express.json())
+const app = express();
+const config = await loadConfig();
+
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use()
-app.use("/api",routes)
-connectToDB()
-app.listen(config.PORT,()=>{
-    console.log(`server is up and running at PORT: ${config.PORT}`)
-})
+
+app.use("/api", routes);
+
+connectToDB();
+
+app.listen(config.PORT, () => {
+    console.log(`Server is up and running at PORT: ${config.PORT}`);
+});
