@@ -64,6 +64,20 @@ const getAllUsers = async (req, res) => {
 
 }
 
+const deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        await userModels.findByIdAndDelete(userId);
+        res.status(200).json({
+            status: 200,
+            message: "User deleted successfully"
+        });
+    } catch (err) {
+        res.status(500).json({ status: 500, message: err.message });
+    }
+}
+
 export {
-    getAllUsers
+    getAllUsers,
+    deleteUser
 }
