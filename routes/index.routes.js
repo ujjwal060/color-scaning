@@ -9,7 +9,7 @@ const router=express()
 router.use("/auth",authRouter)
 router.use("/admin",adminRouter)
 router.use("/admin/users",adminUserRouter)
-router.use("/plan",planRoutes)
-router.use("/subscription",subscriptionRoutes)
+router.use("/plan",protect,planRoutes)
+router.use("/subscription",protect,subscriptionRoutes)
 
 export default router
