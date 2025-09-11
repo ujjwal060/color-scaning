@@ -1,11 +1,12 @@
 import Stripe from "stripe";
 import Subscription from "../../models/subscriptions.model.js";
 import SubscriptionPlan from "../../models/subscriptionPlan.Model.js";
+import { loadConfig } from "../../config/loadConfig.js";
+const config = await loadConfig();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
-
 export const subscribeAndActivate = async (req, res) => {
   try {
     const { userId, planId } = req.body;
