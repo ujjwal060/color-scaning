@@ -5,6 +5,7 @@ import planRoutes from "./planRoutes.js"
 import subscriptionRoutes from "./subscriptionRoutes.js"
 
 import express from "express"
+import { protect } from "../middelwares/auth.middleware.js"
 const router=express()
 router.use("/auth",authRouter)
 router.use("/admin",adminRouter)
