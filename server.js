@@ -3,6 +3,7 @@ import routes from "./routes/index.routes.js";
 import { loadConfig } from "./config/loadConfig.js";
 import connectToDB from "./config/db.js";
 import cors from "cors";
+import "./controllers/subscriptionCleanup.js"
 
 const app = express();
 const config = await loadConfig();

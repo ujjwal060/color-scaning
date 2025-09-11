@@ -7,7 +7,7 @@ import {
   resetPassword,
   getProfile,
   updateProfileImage
-} from "../userController/userAuth.js";
+} from "../controllers/userController/userAuth.js";
 import { protect } from "../middelwares/auth.middleware.js";
 import uploadToS3  from "../config/uploadToS3.js";
 

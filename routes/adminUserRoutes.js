@@ -2,7 +2,7 @@ import express from "express";
 import {
   getAllUsers,
   deleteUser
-} from "../adminController/userController.js";
+} from "../controllers/adminController/userController.js";
 
 import { protect } from "../middelwares/auth.middleware.js";
 

@@ -1,9 +1,9 @@
-import User from "../models/userModels.js";
+import User from "../../models/userModels.js";
 import jwt from "jsonwebtoken";
-import { loadConfig } from "../config/loadConfig.js";
+import { loadConfig } from "../../config/loadConfig.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import sendEmail from "../config/sendmail.js";
+import sendEmail from "../../config/sendmail.js";
 
 const config = await loadConfig();
 
@@ -22,7 +22,9 @@ export const signup = async (req, res) => {
     if (userExists) {
       const conflictField =
         userExists.email === email ? "Email" : "Phone number";
-      return res.status(400).json({ message: `${conflictField} already exists` });
+      return res
+        .status(400)
+        .json({ message: `${conflictField} already exists` });
     }
 
     // Generate OTP
@@ -131,7 +133,7 @@ export const loginUser = async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 

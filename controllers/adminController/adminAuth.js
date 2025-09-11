@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import adminModel from "../models/adminModel.js";
-import { loadConfig } from "../config/loadConfig.js";
-import sendEmail from "../config/sendmail.js";
+import adminModel from "../../models/adminModel.js";
+import { loadConfig } from "../../config/loadConfig.js";
+import sendEmail from "../../config/sendmail.js";
 
 
 const config = await loadConfig();
