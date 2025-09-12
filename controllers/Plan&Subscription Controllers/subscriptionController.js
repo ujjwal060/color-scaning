@@ -13,6 +13,7 @@ const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
 // 1️⃣ Subscribe & Activate
 export const subscribeAndActivate = async (req, res) => {
   try {
+    console.log(config.STRIPE_SECRET_KEY, "secret");
     const { userId, planId } = req.body;
 
     const plan = await SubscriptionPlan.findById(planId);
