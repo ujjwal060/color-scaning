@@ -31,14 +31,34 @@ export const getactivePlans = async (req, res) => {
 };
 export const getAllPlans = async (req, res) => {
   try {
-    const plans = await SubscriptionPlan.find().sort({ planPrice: 1 });
-    res.json({ success: true, message: "Plans fetched successfully", plans });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const plans = await SubscriptionPlan.find()
+      .sort({ planPrice: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPlans = await SubscriptionPlan.countDocuments();
+
+    res.json({
+      success: true,
+      message: "Plans fetched successfully",
+      page,
+      totalPages: Math.ceil(totalPlans / limit),
+      totalPlans,
+      plans,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
+
 
 // Get a single plan
 export const getPlanById = async (req, res) => {

@@ -244,31 +244,44 @@ export const cancelSubscription = async (req, res) => {
 
 export const getAllUsersWithCurrentPlans = async (req, res) => {
   try {
-    // Fetch all users
-    const users = await User.find({});
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    // Fetch active subscriptions for all users
-    const subscriptions = await Subscription.find({ isActive: true })
+    // Fetch paginated users
+    const users = await User.find({}).skip(skip).limit(limit);
+
+    // Fetch active subscriptions for these users
+    const userIds = users.map((u) => u._id);
+    const subscriptions = await Subscription.find({
+      user: { $in: userIds },
+      isActive: true,
+    })
       .populate("plan", "planName planPrice validityDuration")
-      .populate("user", "name email"); // optional: include user info
+      .populate("user", "name email");
 
-    // Map subscriptions by userId for easy lookup
+    // Map subscriptions by userId
     const activeMap = {};
-    subscriptions.forEach(sub => {
+    subscriptions.forEach((sub) => {
       activeMap[sub.user._id] = sub;
     });
 
     // Attach active subscription to each user
-    const usersWithPlans = users.map(user => ({
+    const usersWithPlans = users.map((user) => ({
       _id: user._id,
       name: user.name,
       email: user.email,
       activeSubscription: activeMap[user._id] || null,
     }));
 
+    const totalUsers = await User.countDocuments({});
+
     res.json({
       success: true,
       message: "Users with active subscriptions fetched",
+      page,
+      totalPages: Math.ceil(totalUsers / limit),
+      totalUsers,
       users: usersWithPlans,
     });
   } catch (error) {
@@ -280,37 +293,50 @@ export const getAllUsersWithCurrentPlans = async (req, res) => {
   }
 };
 
-
 export const getAllUsersWithSubscriptionHistory = async (req, res) => {
   try {
-    // Fetch all users
-    const users = await User.find({});
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    // Fetch all subscriptions
-    const subscriptions = await Subscription.find({})
+    // Fetch paginated users
+    const users = await User.find({}).skip(skip).limit(limit);
+
+    const userIds = users.map((u) => u._id);
+
+    // Fetch all subscriptions for these users
+    const subscriptions = await Subscription.find({
+      user: { $in: userIds },
+      isActive: false,
+    })
       .populate("plan", "planName planPrice validityDuration")
       .populate("user", "name email")
       .sort({ createdAt: -1 });
 
     // Group subscriptions by user
     const userSubsMap = {};
-    subscriptions.forEach(sub => {
+    subscriptions.forEach((sub) => {
       const userId = sub.user._id.toString();
       if (!userSubsMap[userId]) userSubsMap[userId] = [];
       userSubsMap[userId].push(sub);
     });
 
     // Attach subscription history to each user
-    const usersWithHistory = users.map(user => ({
+    const usersWithHistory = users.map((user) => ({
       _id: user._id,
       name: user.name,
       email: user.email,
       subscriptions: userSubsMap[user._id] || [],
     }));
 
+    const totalUsers = await User.countDocuments({});
+
     res.json({
       success: true,
       message: "Users with subscription history fetched",
+      page,
+      totalPages: Math.ceil(totalUsers / limit),
+      totalUsers,
       users: usersWithHistory,
     });
   } catch (error) {
