@@ -4,7 +4,7 @@ import {
   createSubscriptionAfterPayment,
   getUserSubscription,
   getUserSubscriptions,
-  cancelSubscription,
+  cancelSubscription,getAllUsersWithCurrentPlans,getAllUsersWithSubscriptionHistory
 } from "../controllers/Plan&Subscription Controllers/subscriptionController.js";
 import { protect } from "../middelwares/auth.middleware.js";
 
@@ -24,5 +24,7 @@ router.get("/all/:userId", getUserSubscriptions);
 
 // Cancel a subscription
 router.post("/cancel/:subscriptionId", cancelSubscription);
+router.get("/user-active-plan", getAllUsersWithCurrentPlans);
+router.get("/user-plan-history", getAllUsersWithSubscriptionHistory);
 
 export default router;

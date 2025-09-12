@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import Subscription from "../../models/subscriptions.model.js";
 import SubscriptionPlan from "../../models/subscriptionPlan.Model.js";
+import User from "../../models/userModels.js";
 import Payment from "../../models/paymentModel.js"; // ✅ import payment model
 import { loadConfig } from "../../config/loadConfig.js";
 
@@ -238,5 +239,85 @@ export const cancelSubscription = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
+export const getAllUsersWithCurrentPlans = async (req, res) => {
+  try {
+    // Fetch all users
+    const users = await User.find({});
+
+    // Fetch active subscriptions for all users
+    const subscriptions = await Subscription.find({ isActive: true })
+      .populate("plan", "planName planPrice validityDuration")
+      .populate("user", "name email"); // optional: include user info
+
+    // Map subscriptions by userId for easy lookup
+    const activeMap = {};
+    subscriptions.forEach(sub => {
+      activeMap[sub.user._id] = sub;
+    });
+
+    // Attach active subscription to each user
+    const usersWithPlans = users.map(user => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      activeSubscription: activeMap[user._id] || null,
+    }));
+
+    res.json({
+      success: true,
+      message: "Users with active subscriptions fetched",
+      users: usersWithPlans,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+export const getAllUsersWithSubscriptionHistory = async (req, res) => {
+  try {
+    // Fetch all users
+    const users = await User.find({});
+
+    // Fetch all subscriptions
+    const subscriptions = await Subscription.find({})
+      .populate("plan", "planName planPrice validityDuration")
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    // Group subscriptions by user
+    const userSubsMap = {};
+    subscriptions.forEach(sub => {
+      const userId = sub.user._id.toString();
+      if (!userSubsMap[userId]) userSubsMap[userId] = [];
+      userSubsMap[userId].push(sub);
+    });
+
+    // Attach subscription history to each user
+    const usersWithHistory = users.map(user => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      subscriptions: userSubsMap[user._id] || [],
+    }));
+
+    res.json({
+      success: true,
+      message: "Users with subscription history fetched",
+      users: usersWithHistory,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
