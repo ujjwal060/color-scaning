@@ -1,7 +1,7 @@
 import express from "express";
 import {
   createPlan,
-  getPlans,
+  getactivePlans,getAllPlans,
   getPlanById,
   updatePlan,
   deletePlan,
@@ -11,7 +11,8 @@ import { adminAuth } from "../middelwares/auth.middleware.js";
 const router = express.Router();
 
 router.post("/",adminAuth, createPlan);
-router.get("/",adminAuth, getPlans);
+router.get("/active",adminAuth, getactivePlans);
+router.get("/all",adminAuth, getAllPlans);
 router.get("/:id",adminAuth, getPlanById);
 router.put("/:id",adminAuth, updatePlan);
 router.delete("/:id",adminAuth, deletePlan);

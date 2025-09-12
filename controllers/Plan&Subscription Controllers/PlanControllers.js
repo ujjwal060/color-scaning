@@ -19,9 +19,19 @@ export const createPlan = async (req, res) => {
 };
 
 // Get all plans
-export const getPlans = async (req, res) => {
+export const getactivePlans = async (req, res) => {
   try {
     const plans = await SubscriptionPlan.find({ activeStatus: true }).sort({ planPrice: 1 });
+    res.json({ success: true, message: "Plans fetched successfully", plans });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
+  }
+};
+export const getAllPlans = async (req, res) => {
+  try {
+    const plans = await SubscriptionPlan.find().sort({ planPrice: 1 });
     res.json({ success: true, message: "Plans fetched successfully", plans });
   } catch (error) {
     res
