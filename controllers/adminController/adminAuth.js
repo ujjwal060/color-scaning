@@ -1,17 +1,19 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import adminModel from "../../models/adminModel.js";
+import Admin from "../../models/adminModel.js"; // ✅ updated import
 import { loadConfig } from "../../config/loadConfig.js";
 import sendEmail from "../../config/sendmail.js";
 
-
 const config = await loadConfig();
 
+/**
+ * Register Admin (only one allowed)
+ */
 const registerAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const existing = await adminModel.findOne({});
+    const existing = await Admin.findOne({});
     if (existing) {
       return res
         .status(400)
@@ -20,26 +22,32 @@ const registerAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const admin = new adminModel({
+    const admin = new Admin({
       email,
       password: hashedPassword,
+      role: "Admin", // ✅ set role explicitly
     });
 
     await admin.save();
 
-    return res
-      .status(201)
-      .json({ status: 201, success: true, message: "Admin registered successfully" });
+    return res.status(201).json({
+      status: 201,
+      success: true,
+      message: "Admin registered successfully",
+    });
   } catch (err) {
-    res.status(500).json({status:500, message: err.message });
+    res.status(500).json({ status: 500, message: err.message });
   }
 };
 
+/**
+ * Admin Login
+ */
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const admin = await adminModel.findOne({ email });
+    const admin = await Admin.findOne({ email });
     if (!admin) {
       return res.status(404).json({ status: 404, message: "Admin not found" });
     }
@@ -50,7 +58,7 @@ const adminLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: "admin" },
+      { id: admin._id, email: admin.email, role: admin.role },
       config.ACCESS_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -62,17 +70,21 @@ const adminLogin = async (req, res) => {
       admin: {
         id: admin._id,
         email: admin.email,
+        role: admin.role,
       },
     });
   } catch (err) {
     res.status(500).json({ status: 500, message: err.message });
   }
-}
+};
 
+/**
+ * Forgot Password - Generate OTP
+ */
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const admin = await adminModel.findOne({ email });
+    const admin = await Admin.findOne({ email });
     if (!admin) {
       return res.status(404).json({ status: 404, message: "Admin not found" });
     }
@@ -80,7 +92,7 @@ const forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     admin.otp = otp;
-    admin.otpExpires = Date.now() + 5 * 60 * 1000;
+    admin.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
     await admin.save();
 
     await sendEmail(
@@ -96,12 +108,15 @@ const forgotPassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 500, message: err.message });
   }
-}
+};
 
+/**
+ * Verify OTP
+ */
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const admin = await adminModel.findOne({ email });
+    const admin = await Admin.findOne({ email });
     if (!admin) {
       return res.status(404).json({ status: 404, message: "Admin not found" });
     }
@@ -114,9 +129,11 @@ const verifyOtp = async (req, res) => {
     admin.otpExpires = undefined;
     await admin.save();
 
-    const resetToken = jwt.sign({ id: admin._id, email: admin.email }, config.ACCESS_TOKEN_SECRET, {
-      expiresIn: "5m",
-    });
+    const resetToken = jwt.sign(
+      { id: admin._id, email: admin.email, role: admin.role },
+      config.ACCESS_TOKEN_SECRET,
+      { expiresIn: "5m" }
+    );
 
     return res.json({
       status: 200,
@@ -126,14 +143,17 @@ const verifyOtp = async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 500, message: err.message });
   }
-}
+};
 
+/**
+ * Set New Password
+ */
 const setPassword = async (req, res) => {
   try {
     const { newPassword } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.user.id; // ✅ this assumes middleware decoded JWT and set req.user
 
-    const admin = await adminModel.findById(adminId);
+    const admin = await Admin.findById(adminId);
     if (!admin) {
       return res.status(404).json({ status: 404, message: "Admin not found" });
     }
@@ -146,6 +166,6 @@ const setPassword = async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 500, message: err.message });
   }
-}
+};
 
 export { registerAdmin, adminLogin, forgotPassword, verifyOtp, setPassword };

@@ -6,13 +6,14 @@ import {
   updatePlan,
   deletePlan,
 } from "../controllers/Plan&Subscription Controllers/PlanControllers.js";
+import { adminAuth } from "../middelwares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/", createPlan);
-router.get("/", getPlans);
-router.get("/:id", getPlanById);
-router.put("/:id", updatePlan);
-router.delete("/:id", deletePlan);
+router.post("/",adminAuth, createPlan);
+router.get("/",adminAuth, getPlans);
+router.get("/:id",adminAuth, getPlanById);
+router.put("/:id",adminAuth, updatePlan);
+router.delete("/:id",adminAuth, deletePlan);
 
 export default router;

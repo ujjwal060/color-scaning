@@ -1,12 +1,16 @@
 import Stripe from "stripe";
 import Subscription from "../../models/subscriptions.model.js";
 import SubscriptionPlan from "../../models/subscriptionPlan.Model.js";
+import Payment from "../../models/paymentModel.js"; // ✅ import payment model
 import { loadConfig } from "../../config/loadConfig.js";
+
 const config = await loadConfig();
 
 const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
+
+// 1️⃣ Subscribe & Activate
 export const subscribeAndActivate = async (req, res) => {
   try {
     const { userId, planId } = req.body;
@@ -29,17 +33,19 @@ export const subscribeAndActivate = async (req, res) => {
       });
     }
 
-    // Create PaymentIntent and confirm immediately (testing mode)
+    // Create PaymentIntent (Stripe test mode)
+    // Create PaymentIntent (Stripe test mode)
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: plan.planPrice * 100, // in cents
+      amount: plan.planPrice * 100, // cents
       currency: "usd",
-      payment_method: "pm_card_visa", // Stripe test card
-      confirm: true, // auto-confirm for testing
+      payment_method: "pm_card_visa", // test card
+      confirm: true,
       automatic_payment_methods: {
         enabled: true,
-        allow_redirects: "never", // prevent redirect errors
+        allow_redirects: "never",
       },
       metadata: { userId, planId },
+      expand: ["charges.data.payment_method_details"], // ✅ put it here
     });
 
     if (paymentIntent.status !== "succeeded") {
@@ -50,7 +56,6 @@ export const subscribeAndActivate = async (req, res) => {
       });
     }
 
-    // Create subscription in DB
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + plan.validityDuration);
@@ -64,10 +69,30 @@ export const subscribeAndActivate = async (req, res) => {
       stripePaymentIntentId: paymentIntent.id,
     });
 
+    const charge = paymentIntent.charges?.data[0];
+
+    const payment = await Payment.create({
+      user: userId,
+      subscription: subscription._id,
+      plan: plan._id,
+      stripePaymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount / 100,
+      currency: paymentIntent.currency,
+      status: paymentIntent.status,
+      paymentMethod: {
+        id: paymentIntent.payment_method,
+        type: charge?.payment_method_details?.type || null,
+        brand: charge?.payment_method_details?.card?.brand || null,
+        last4: charge?.payment_method_details?.card?.last4 || null,
+      },
+      receiptUrl: charge?.receipt_url || null,
+    });
+
     res.status(201).json({
       success: true,
       message: "Subscription activated successfully",
       subscription,
+      payment,
     });
   } catch (error) {
     res.status(500).json({
@@ -77,13 +102,15 @@ export const subscribeAndActivate = async (req, res) => {
     });
   }
 };
-// 2️⃣ Confirm subscription after payment
+
 export const createSubscriptionAfterPayment = async (req, res) => {
   try {
     const { userId, planId, paymentIntentId } = req.body;
 
-    // Validate PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ["payment_method"] }
+    );
     if (paymentIntent.status !== "succeeded") {
       return res
         .status(400)
@@ -91,10 +118,11 @@ export const createSubscriptionAfterPayment = async (req, res) => {
     }
 
     const plan = await SubscriptionPlan.findById(planId);
-    if (!plan)
+    if (!plan) {
       return res
         .status(404)
         .json({ success: false, message: "Plan not found" });
+    }
 
     const startDate = new Date();
     const endDate = new Date();
@@ -109,10 +137,29 @@ export const createSubscriptionAfterPayment = async (req, res) => {
       stripePaymentIntentId: paymentIntent.id,
     });
 
+    const charge = paymentIntent.charges?.data[0];
+    const payment = await Payment.create({
+      user: userId,
+      subscription: subscription._id,
+      plan: plan._id,
+      stripePaymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      status: paymentIntent.status,
+      paymentMethod: {
+        id: paymentIntent.payment_method,
+        type: charge?.payment_method_details?.type,
+        brand: charge?.payment_method_details?.card?.brand,
+        last4: charge?.payment_method_details?.card?.last4,
+      },
+      receiptUrl: charge?.receipt_url,
+    });
+
     res.status(201).json({
       success: true,
       message: "Subscription activated successfully",
       subscription,
+      payment,
     });
   } catch (error) {
     res.status(500).json({

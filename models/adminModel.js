@@ -14,6 +14,10 @@ const AdminSchema = new mongoose.Schema(
     otp: {
       type: String,
     },
+    role: {
+      type: String,
+      enum: "Admin",
+    },
     otpExpires: {
       type: Date,
     },
