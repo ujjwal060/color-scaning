@@ -19,11 +19,11 @@ export const getDashboardData = async (req, res) => {
     });
     const usersWithActiveSubs = activeSubsUsers.length;
 
-    // 3. Total Revenue (sum of plan prices)
+    // 3. Total Revenue
     const totalRevenueData = await Subscription.aggregate([
       {
         $lookup: {
-          from: "subscriptionplans", // collection name (lowercase, plural)
+          from: "subscriptionplans",
           localField: "plan",
           foreignField: "_id",
           as: "planDetails",
@@ -64,11 +64,13 @@ export const getDashboardData = async (req, res) => {
     ]);
     const todaysRevenue = todayRevenueData[0]?.todaysRevenue || 0;
 
-    // 5. Last 5 Subscriptions
+    // 5. Last 5 Subscriptions → only select necessary fields
     const lastFiveSubs = await Subscription.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("user plan");
+      .populate("user", "name email") // only get name + email
+      .populate("plan", "planName planPrice ") // only get name + price
+      .lean();
 
     // 6. Plan-wise Subscription Data
     const planWiseData = await Subscription.aggregate([
