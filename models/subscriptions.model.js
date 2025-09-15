@@ -36,12 +36,25 @@ subscriptionSchema.pre("validate", async function (next) {
 
     if (planDetails) {
       const end = new Date(this.startDate);
-      end.setDate(end.getDate() + planDetails.validityDuration);
+
+      switch (planDetails.billingCycle) {
+        case "Monthly":
+          end.setMonth(end.getMonth() + 1); // add 1 month
+          break;
+        case "Quarterly":
+          end.setMonth(end.getMonth() + 3); // add 3 months
+          break;
+        case "Yearly":
+          end.setFullYear(end.getFullYear() + 1); // add 1 year
+          break;
+      }
+
       this.endDate = end;
     }
   }
   next();
 });
+
 
 const Subscription = mongoose.model("Subscription", subscriptionSchema);
 export default Subscription;

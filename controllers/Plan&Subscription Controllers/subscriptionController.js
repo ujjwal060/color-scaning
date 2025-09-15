@@ -145,7 +145,7 @@ export const createSubscriptionAfterPayment = async (req, res) => {
       subscription: subscription._id,
       plan: plan._id,
       stripePaymentIntentId: paymentIntent.id,
-      amount: paymentIntent.amount,
+      amount: paymentIntent.amount / 100,
       currency: paymentIntent.currency,
       status: paymentIntent.status,
       paymentMethod: {
@@ -232,6 +232,7 @@ export const cancelSubscription = async (req, res) => {
         .json({ success: false, message: "Subscription not found" });
 
     subscription.isActive = false;
+    subscription.endDate = new Date(); // mark cancel time
     await subscription.save();
 
     res.json({ success: true, message: "Subscription canceled successfully" });
