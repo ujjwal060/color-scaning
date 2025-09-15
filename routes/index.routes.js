@@ -15,6 +15,6 @@ router.use("/admin/users",adminUserRouter)
 router.use("/plan",planRoutes)
 router.use("/subscription",subscriptionRoutes)
 router.use("/payments",adminAuth,paymentRoute)
-router.use("/dashboard",getDashboardData)
+router.use("/dashboard",adminAuth,getDashboardData)
 
 export default router
