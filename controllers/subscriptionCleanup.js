@@ -16,4 +16,4 @@ cron.schedule("0 0 * * *", async () => {
   } catch (err) {
     console.error("❌ Error in subscription cleanup job:", err);
   }
-});
+},);
