@@ -6,6 +6,22 @@ import sendEmail from "../../config/sendmail.js";
 
 const config = await loadConfig();
 
+const generateAccessToken = (admin) => {
+  return jwt.sign(
+    { id: admin._id, email: admin.email, role: admin.role },
+    config.ACCESS_TOKEN_SECRET,
+    { expiresIn: "15m" } // shorter lifespan
+  );
+};
+
+const generateRefreshToken = (admin) => {
+  return jwt.sign(
+    { id: admin._id, email: admin.email, role: admin.role },
+    config.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
 /**
  * Register Admin (only one allowed)
  */
@@ -57,16 +73,18 @@ const adminLogin = async (req, res) => {
       return res.status(400).json({ status: 400, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: admin.role },
-      config.ACCESS_TOKEN_SECRET,
-      { expiresIn: "7d" }
-    );
+    const accessToken = generateAccessToken(admin);
+    const refreshToken = generateRefreshToken(admin);
+
+    // Save refresh token in DB
+    admin.refreshToken = refreshToken;
+    await admin.save();
 
     return res.status(200).json({
       status: 200,
       message: "Login successful",
-      token,
+      accessToken,
+      refreshToken,
       admin: {
         id: admin._id,
         email: admin.email,
@@ -77,6 +95,32 @@ const adminLogin = async (req, res) => {
     res.status(500).json({ status: 500, message: err.message });
   }
 };
+
+const adminRefreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token required" });
+    }
+
+    const admin = await Admin.findOne({ refreshToken });
+    if (!admin) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: "Expired or invalid refresh token" });
+      }
+
+      const newAccessToken = generateAccessToken(admin);
+      res.json({ accessToken: newAccessToken });
+    });
+  } catch (err) {
+    res.status(500).json({ status: 500, message: err.message });
+  }
+};
+
 
 /**
  * Forgot Password - Generate OTP
@@ -168,4 +212,4 @@ const setPassword = async (req, res) => {
   }
 };
 
-export { registerAdmin, adminLogin, forgotPassword, verifyOtp, setPassword };
+export { registerAdmin,adminRefreshAccessToken, adminLogin, forgotPassword, verifyOtp, setPassword };

@@ -18,6 +18,10 @@ const AdminSchema = new mongoose.Schema(
       type: String,
       enum: "Admin",
     },
+    refreshToken: {
+      type: String,
+      default: null,
+    },
     otpExpires: {
       type: Date,
     },

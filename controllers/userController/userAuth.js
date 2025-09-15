@@ -7,9 +7,14 @@ import sendEmail from "../../config/sendmail.js";
 
 const config = await loadConfig();
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, config.ACCESS_TOKEN_SECRET, { expiresIn: "30d" });
+const generateAccessToken = (id,email) => {
+  return jwt.sign({ id,email }, config.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
 };
+
+const generateRefreshToken = (id,email) => {
+  return jwt.sign({ id,email }, config.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+};
+
 
 // ---------------- Signup ----------------
 export const signup = async (req, res) => {
@@ -115,14 +120,18 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user || !user.isVerified) {
-      return res
-        .status(401)
-        .json({ message: "User not verified or not found" });
+      return res.status(401).json({ message: "User not verified or not found" });
     }
 
     const isMatch = await user.matchPassword(password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    const accessToken = generateAccessToken(user._id,user.email);
+    const refreshToken = generateRefreshToken(user._id,user.email);
+
+    // ✅ Save refresh token in DB (user or a separate model)
+    user.refreshToken = refreshToken;
+    await user.save();
 
     res.json({
       _id: user._id,
@@ -130,12 +139,33 @@ export const loginUser = async (req, res) => {
       email: user.email,
       phoneNo: user.phoneNo,
       profile: user.profile,
-      token: generateToken(user._id),
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(401).json({ message: "No refresh token provided" });
+
+    const user = await User.findOne({ refreshToken });
+    if (!user) return res.status(403).json({ message: "Invalid refresh token" });
+
+    jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, (err, decoded) => {
+      if (err) return res.status(403).json({ message: "Invalid or expired refresh token" });
+
+      const accessToken = generateAccessToken(decoded.id,decoded.email);
+      res.json({ accessToken });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 
 // ---------------- Forgot Password ----------------
 export const forgotPassword = async (req, res) => {
@@ -194,4 +224,18 @@ export const getProfile = async (req, res) => {
     phoneNo: req.user.phoneNo,
     profile: req.user.profile,
   });
+};
+
+export const logoutUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.refreshToken = null;
+    await user.save();
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
 };

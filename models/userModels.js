@@ -18,7 +18,10 @@ const userSchema = new Schema(
     signupOtp: String,
     signupOtpExpire: Date,
     isVerified: { type: Boolean, default: false },
-
+    refreshToken: {
+      type: String,
+      default: null,
+    },
     resetOtp: String,
     resetOtpExpire: Date,
   },

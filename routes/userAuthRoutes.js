@@ -6,7 +6,8 @@ import {
   forgotPassword,
   resetPassword,
   getProfile,
-  updateProfileImage
+  updateProfileImage,
+  refreshAccessToken
 } from "../controllers/userController/userAuth.js";
 import { protect } from "../middelwares/auth.middleware.js";
 import uploadToS3  from "../config/uploadToS3.js";
@@ -18,6 +19,7 @@ router.post("/signup/verify-otp", verifySignupOtp);
 router.put("/update-profile",protect,uploadToS3, updateProfileImage);    
 
 router.post("/login", loginUser);
+router.post("/refresh", refreshAccessToken);
 
 router.post("/forgot-password", forgotPassword);       // send OTP
 router.post("/reset-password", resetPassword);         // verify OTP + reset
