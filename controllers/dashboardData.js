@@ -68,8 +68,8 @@ export const getDashboardData = async (req, res) => {
     const lastFiveSubs = await Subscription.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("user", "name email") // only get name + email
-      .populate("plan", "planName planPrice ") // only get name + price
+      .populate("user", "name email")
+      .populate("plan", "planName planPrice ")
       .lean();
 
     // 6. Plan-wise Subscription Data
@@ -90,7 +90,7 @@ export const getDashboardData = async (req, res) => {
           revenue: { $sum: "$planDetails.planPrice" },
         },
       },
-      { $sort: { revenue: -1 } },
+      { $sort: { revenue: -1 } },   
     ]);
 
     res.json({
