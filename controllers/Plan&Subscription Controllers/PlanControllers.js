@@ -16,12 +16,21 @@ export const createPlan = async (req, res) => {
 
     const existing = await SubscriptionPlan.findOne({ planName });
     if (existing)
-      return res.status(400).json({ success: false, message: "Plan already exists" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Plan already exists" });
 
-    const plan = await SubscriptionPlan.create({ planName, billingCycle, planPrice });
-    res
-      .status(201)
-      .json({ success: true, message: "Plan created successfully", plan });
+    const plan = await SubscriptionPlan.create({
+      planName,
+      billingCycle,
+      planPrice,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Plan created successfully",
+      data: plan,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -37,10 +46,11 @@ export const getActivePlans = async (req, res) => {
     const plans = await SubscriptionPlan.find({ activeStatus: true }).sort({
       planPrice: 1,
     });
+
     res.json({
       success: true,
       message: "Active plans fetched successfully",
-      plans,
+      data: plans,
     });
   } catch (error) {
     res.status(500).json({
@@ -63,8 +73,15 @@ export const getAllPlans = async (req, res) => {
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1; // default: desc
 
     // only allow valid sort fields
-    const validSortFields = ["planName", "planPrice", "validityDuration", "createdAt"];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const validSortFields = [
+      "planName",
+      "planPrice",
+      "validityDuration",
+      "createdAt",
+    ];
+    const sortField = validSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
 
     const plans = await SubscriptionPlan.find()
       .sort({ [sortField]: sortOrder })
@@ -76,12 +93,14 @@ export const getAllPlans = async (req, res) => {
     res.json({
       success: true,
       message: "Plans fetched successfully",
-      page,
-      totalPages: Math.ceil(totalPlans / limit),
-      totalPlans,
-      sortBy: sortField,
-      sortOrder: sortOrder === 1 ? "asc" : "desc",
-      plans,
+      data: {
+        page,
+        totalPages: Math.ceil(totalPlans / limit),
+        totalPlans,
+        sortBy: sortField,
+        sortOrder: sortOrder === 1 ? "asc" : "desc",
+        plans,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -97,9 +116,15 @@ export const getPlanById = async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findById(req.params.id);
     if (!plan)
-      return res.status(404).json({ success: false, message: "Plan not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Plan not found" });
 
-    res.json({ success: true, message: "Plan fetched successfully", plan });
+    res.json({
+      success: true,
+      message: "Plan fetched successfully",
+      data: plan,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -124,13 +149,24 @@ export const updatePlan = async (req, res) => {
       }
     }
 
-    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!plan)
-      return res.status(404).json({ success: false, message: "Plan not found" });
+    const plan = await SubscriptionPlan.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+      }
+    );
 
-    res.json({ success: true, message: "Plan updated successfully", plan });
+    if (!plan)
+      return res
+        .status(404)
+        .json({ success: false, message: "Plan not found" });
+
+    res.json({
+      success: true,
+      message: "Plan updated successfully",
+      data: plan,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -145,9 +181,15 @@ export const deletePlan = async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
     if (!plan)
-      return res.status(404).json({ success: false, message: "Plan not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Plan not found" });
 
-    res.json({ success: true, message: "Plan deleted successfully" });
+    res.json({
+      success: true,
+      message: "Plan deleted successfully",
+      data: null,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

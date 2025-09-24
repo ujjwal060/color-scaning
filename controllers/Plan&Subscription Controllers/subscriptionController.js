@@ -14,47 +14,42 @@ const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
 // 1️⃣ Subscribe & Activate
 export const subscribeAndActivate = async (req, res) => {
   try {
-    console.log(config.STRIPE_SECRET_KEY, "secret");
     const { userId, planId } = req.body;
 
     const plan = await SubscriptionPlan.findById(planId);
     if (!plan || !plan.activeStatus) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid or inactive plan" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or inactive plan",
+        data: null,
+      });
     }
 
-    const existing = await Subscription.findOne({
-      user: userId,
-      isActive: true,
-    });
+    const existing = await Subscription.findOne({ user: userId, isActive: true });
     if (existing) {
       return res.status(400).json({
         success: false,
         message: "User already has an active subscription",
+        data: null,
       });
     }
 
-    // Create PaymentIntent (Stripe test mode)
     // Create PaymentIntent (Stripe test mode)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: plan.planPrice * 100, // cents
       currency: "usd",
       payment_method: "pm_card_visa", // test card
       confirm: true,
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: "never",
-      },
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       metadata: { userId, planId },
-      expand: ["charges.data.payment_method_details"], // ✅ put it here
+      expand: ["charges.data.payment_method_details"],
     });
 
     if (paymentIntent.status !== "succeeded") {
       return res.status(400).json({
         success: false,
         message: "Payment not completed",
-        status: paymentIntent.status,
+        data: { status: paymentIntent.status },
       });
     }
 
@@ -93,37 +88,37 @@ export const subscribeAndActivate = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Subscription activated successfully",
-      subscription,
-      payment,
+      data: { subscription, payment },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Subscription creation failed",
+      data: null,
       error: error.message,
     });
   }
 };
 
+// 2️⃣ Create Subscription After Payment
 export const createSubscriptionAfterPayment = async (req, res) => {
   try {
     const { userId, planId, paymentIntentId } = req.body;
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      paymentIntentId,
-      { expand: ["payment_method"] }
-    );
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["payment_method"],
+    });
     if (paymentIntent.status !== "succeeded") {
       return res
         .status(400)
-        .json({ success: false, message: "Payment not completed" });
+        .json({ success: false, message: "Payment not completed", data: null });
     }
 
     const plan = await SubscriptionPlan.findById(planId);
     if (!plan) {
       return res
         .status(404)
-        .json({ success: false, message: "Plan not found" });
+        .json({ success: false, message: "Plan not found", data: null });
     }
 
     const startDate = new Date();
@@ -160,13 +155,13 @@ export const createSubscriptionAfterPayment = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Subscription activated successfully",
-      subscription,
-      payment,
+      data: { subscription, payment },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Subscription creation failed",
+      data: null,
       error: error.message,
     });
   }
@@ -182,20 +177,26 @@ export const getUserSubscription = async (req, res) => {
       isActive: true,
     }).populate("plan", "planName planPrice validityDuration");
 
-    if (!subscription)
-      return res
-        .status(404)
-        .json({ success: false, message: "No active subscription" });
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "No active subscription",
+        data: null,
+      });
+    }
 
     res.json({
       success: true,
       message: "Active subscription fetched",
-      subscription,
+      data: subscription,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: null,
+      error: error.message,
+    });
   }
 };
 
@@ -211,12 +212,15 @@ export const getUserSubscriptions = async (req, res) => {
     res.json({
       success: true,
       message: "Subscription history fetched",
-      subscriptions,
+      data: subscriptions,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: null,
+      error: error.message,
+    });
   }
 };
 
@@ -226,34 +230,43 @@ export const cancelSubscription = async (req, res) => {
     const { subscriptionId } = req.params;
 
     const subscription = await Subscription.findById(subscriptionId);
-    if (!subscription)
-      return res
-        .status(404)
-        .json({ success: false, message: "Subscription not found" });
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Subscription not found",
+        data: null,
+      });
+    }
 
     subscription.isActive = false;
-    subscription.endDate = new Date(); // mark cancel time
+    subscription.endDate = new Date();
     await subscription.save();
 
-    res.json({ success: true, message: "Subscription canceled successfully" });
+    res.json({
+      success: true,
+      message: "Subscription canceled successfully",
+      data: subscription,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: null,
+      error: error.message,
+    });
   }
 };
 
+// 6️⃣ Get all users with current plans
 export const getAllUsersWithCurrentPlans = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Fetch paginated users
     const users = await User.find({}).skip(skip).limit(limit);
-
-    // Fetch active subscriptions for these users
     const userIds = users.map((u) => u._id);
+
     const subscriptions = await Subscription.find({
       user: { $in: userIds },
       isActive: true,
@@ -261,13 +274,11 @@ export const getAllUsersWithCurrentPlans = async (req, res) => {
       .populate("plan", "planName planPrice validityDuration")
       .populate("user", "name email");
 
-    // Map subscriptions by userId
     const activeMap = {};
     subscriptions.forEach((sub) => {
       activeMap[sub.user._id] = sub;
     });
 
-    // Attach active subscription to each user
     const usersWithPlans = users.map((user) => ({
       _id: user._id,
       name: user.name,
@@ -280,32 +291,33 @@ export const getAllUsersWithCurrentPlans = async (req, res) => {
     res.json({
       success: true,
       message: "Users with active subscriptions fetched",
-      page,
-      totalPages: Math.ceil(totalUsers / limit),
-      totalUsers,
-      users: usersWithPlans,
+      data: {
+        page,
+        totalPages: Math.ceil(totalUsers / limit),
+        totalUsers,
+        users: usersWithPlans,
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server error",
+      data: null,
       error: error.message,
     });
   }
 };
 
+// 7️⃣ Get all users with subscription history
 export const getAllUsersWithSubscriptionHistory = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Fetch paginated users
     const users = await User.find({}).skip(skip).limit(limit);
-
     const userIds = users.map((u) => u._id);
 
-    // Fetch all subscriptions for these users
     const subscriptions = await Subscription.find({
       user: { $in: userIds },
       isActive: false,
@@ -314,7 +326,6 @@ export const getAllUsersWithSubscriptionHistory = async (req, res) => {
       .populate("user", "name email")
       .sort({ createdAt: -1 });
 
-    // Group subscriptions by user
     const userSubsMap = {};
     subscriptions.forEach((sub) => {
       const userId = sub.user._id.toString();
@@ -322,7 +333,6 @@ export const getAllUsersWithSubscriptionHistory = async (req, res) => {
       userSubsMap[userId].push(sub);
     });
 
-    // Attach subscription history to each user
     const usersWithHistory = users.map((user) => ({
       _id: user._id,
       name: user.name,
@@ -335,15 +345,18 @@ export const getAllUsersWithSubscriptionHistory = async (req, res) => {
     res.json({
       success: true,
       message: "Users with subscription history fetched",
-      page,
-      totalPages: Math.ceil(totalUsers / limit),
-      totalUsers,
-      users: usersWithHistory,
+      data: {
+        page,
+        totalPages: Math.ceil(totalUsers / limit),
+        totalUsers,
+        users: usersWithHistory,
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server error",
+      data: null,
       error: error.message,
     });
   }

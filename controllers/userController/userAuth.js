@@ -171,7 +171,7 @@ export const updateProfileImage = async (req, res) => {
 
     res.status(200).json({
       message: "Profile image updated successfully",
-      profile: user.profile,
+      data: user.profile,
     });
   } catch (error) {
     console.error(error);
@@ -278,7 +278,7 @@ export const refreshAccessToken = async (req, res) => {
           .json({ message: "Invalid or expired refresh token" });
 
       const accessToken = generateAccessToken(decoded.id, decoded.email);
-      res.json({ accessToken });
+      res.json({ success: true, message: "data fetched", data: accessToken });
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -336,11 +336,15 @@ export const resetPassword = async (req, res) => {
 // ---------------- Get Profile ----------------
 export const getProfile = async (req, res) => {
   res.json({
-    _id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    phoneNo: req.user.phoneNo,
-    profile: req.user.profile,
+    status: 200,
+    message:" Profile fetched successfully",
+    data: {
+      _id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phoneNo: req.user.phoneNo,
+      profile: req.user.profile,
+    },
   });
 };
 
