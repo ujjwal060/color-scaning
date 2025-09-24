@@ -11,7 +11,7 @@ import { adminAuth } from "../middelwares/auth.middleware.js";
 const router = express.Router();
 
 router.post("/",adminAuth, createPlan);
-router.get("/active",adminAuth, getActivePlans);
+router.get("/active", getActivePlans);
 router.get("/all",adminAuth, getAllPlans);
 router.get("/:id",adminAuth, getPlanById);
 router.put("/:id",adminAuth, updatePlan);
