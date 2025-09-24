@@ -4,7 +4,10 @@ import { loadConfig } from "../../config/loadConfig.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import sendEmail from "../../config/sendmail.js";
-import { registrationOtpTemp,verificationSuccessTemp } from "../../templates/templates.js";
+import {
+  registrationOtpTemp,
+  verificationSuccessTemp,
+} from "../../templates/templates.js";
 import { generateOTP } from "../../utils/generateOTP.js";
 
 const config = await loadConfig();
@@ -237,13 +240,15 @@ export const loginUser = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Login successful",
-      token: { accessToken, refreshToken },
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phoneNo: user.phoneNo,
-        profile: user.profile,
+      data: {
+        token: { accessToken, refreshToken },
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNo: user.phoneNo,
+          profile: user.profile,
+        },
       },
     });
   } catch (error) {
@@ -255,7 +260,6 @@ export const loginUser = async (req, res) => {
     });
   }
 };
-
 
 export const refreshAccessToken = async (req, res) => {
   try {
