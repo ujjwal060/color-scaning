@@ -130,7 +130,6 @@ export const createSubscriptionAfterPayment = async (req, res) => {
   }
 };
 
-
 // 3️⃣ Get active subscription
 export const getUserSubscription = async (req, res) => {
   try {

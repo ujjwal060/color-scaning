@@ -32,7 +32,7 @@ const loadConfig = async () => {
           EMAIL_PASS: secrets.EMAIL_PASS,
           AWS_ACCESS_KEY_ID: secrets.AWS_ACCESS_KEY_ID,
           AWS_SECRET_ACCESS_KEY: secrets.AWS_SECRET_ACCESS_KEY,
-          STRIPE_SECRET_KEY: secrets.STRIPE_SECRET_KEY,
+          STRIPE_SECRET_KEY: "sk_test_51SB8NbABTAXJRiRxbB0zigD8RvsKjWlfpIoPBJ3SUFA7p1CAxDPkyPcST7e6aYItpME87AIAsNPotvIYlbOOUdLj002jzCnDUL",
           S3_BUCKET: "bucket-rtyu",
         };
       }
