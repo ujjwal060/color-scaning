@@ -11,90 +11,48 @@ const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
 
-// 1️⃣ Subscribe & Activate
-export const subscribeAndActivate = async (req, res) => {
+// POST /api/payments/create-intent
+export const createPaymentIntent = async (req, res) => {
   try {
-    const { userId, planId } = req.body;
+    const { planId } = req.body;
+    const userId=req.user.id
 
     const plan = await SubscriptionPlan.findById(planId);
     if (!plan || !plan.activeStatus) {
       return res.status(400).json({
         success: false,
         message: "Invalid or inactive plan",
-        data: null,
       });
     }
 
+    // 💡 check if user already subscribed
     const existing = await Subscription.findOne({ user: userId, isActive: true });
     if (existing) {
       return res.status(400).json({
         success: false,
         message: "User already has an active subscription",
-        data: null,
       });
     }
 
-    // Create PaymentIntent (Stripe test mode)
+    // Create PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: plan.planPrice * 100, // cents
       currency: "usd",
-      payment_method: "pm_card_visa", // test card
-      confirm: true,
-      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       metadata: { userId, planId },
-      expand: ["charges.data.payment_method_details"],
     });
 
-    if (paymentIntent.status !== "succeeded") {
-      return res.status(400).json({
-        success: false,
-        message: "Payment not completed",
-        data: { status: paymentIntent.status },
-      });
-    }
+    res.status(200).json({
+  success: true,
+  data: {
+    clientSecret: paymentIntent.client_secret, 
+    paymentIntentId: paymentIntent.id,
+  },
+});
 
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + plan.validityDuration);
-
-    const subscription = await Subscription.create({
-      user: userId,
-      plan: plan._id,
-      startDate,
-      endDate,
-      isActive: true,
-      stripePaymentIntentId: paymentIntent.id,
-    });
-
-    const charge = paymentIntent.charges?.data[0];
-
-    const payment = await Payment.create({
-      user: userId,
-      subscription: subscription._id,
-      plan: plan._id,
-      stripePaymentIntentId: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
-      currency: paymentIntent.currency,
-      status: paymentIntent.status,
-      paymentMethod: {
-        id: paymentIntent.payment_method,
-        type: charge?.payment_method_details?.type || null,
-        brand: charge?.payment_method_details?.card?.brand || null,
-        last4: charge?.payment_method_details?.card?.last4 || null,
-      },
-      receiptUrl: charge?.receipt_url || null,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Subscription activated successfully",
-      data: { subscription, payment },
-    });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Subscription creation failed",
-      data: null,
+      message: "Failed to create PaymentIntent",
       error: error.message,
     });
   }
@@ -105,25 +63,30 @@ export const createSubscriptionAfterPayment = async (req, res) => {
   try {
     const { userId, planId, paymentIntentId } = req.body;
 
+    // Retrieve intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["payment_method"],
+      expand: ["payment_method", "charges.data.payment_method_details"],
     });
+
     if (paymentIntent.status !== "succeeded") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Payment not completed", data: null });
+      return res.status(400).json({
+        success: false,
+        message: "Payment not completed",
+      });
     }
 
     const plan = await SubscriptionPlan.findById(planId);
     if (!plan) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Plan not found", data: null });
+      return res.status(404).json({
+        success: false,
+        message: "Plan not found",
+      });
     }
 
+    // Subscription validity
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + plan.validityDuration);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + plan.validityDuration);
 
     const subscription = await Subscription.create({
       user: userId,
@@ -135,6 +98,7 @@ export const createSubscriptionAfterPayment = async (req, res) => {
     });
 
     const charge = paymentIntent.charges?.data[0];
+
     const payment = await Payment.create({
       user: userId,
       subscription: subscription._id,
@@ -161,11 +125,11 @@ export const createSubscriptionAfterPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Subscription creation failed",
-      data: null,
       error: error.message,
     });
   }
 };
+
 
 // 3️⃣ Get active subscription
 export const getUserSubscription = async (req, res) => {

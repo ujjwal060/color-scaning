@@ -152,32 +152,39 @@ export const verifySignupOtp = async (req, res) => {
 };
 
 // ---------------- Update Profile Image ----------------
-export const updateProfileImage = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // from auth middleware
     const profile = req.fileLocations ? req.fileLocations[0] : null;
-
-    if (!profile) {
-      return res.status(400).json({ message: "No profile image uploaded" });
+ 
+    const { name, email, phoneNo } = req.body;
+ 
+    const updateData = {};
+    if (profile) updateData.profile = profile;
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (phoneNo) updateData.phoneNo = phoneNo;
+ 
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No data provided to update" });
     }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.profile = profile;
-    await user.save();
-
+ 
+    const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
+ 
+    // if (!profile) {
+    //   return res.status(400).json({ message: "No profile image uploaded" });
+    // }
+ 
     res.status(200).json({
       message: "Profile image updated successfully",
-      data: user.profile,
+      data: user,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 // ---------------- Login ----------------
 export const loginUser = async (req, res) => {

@@ -1,20 +1,20 @@
 import express from "express";
 import {
-  subscribeAndActivate,
   createSubscriptionAfterPayment,
   getUserSubscription,
   getUserSubscriptions,
-  cancelSubscription,getAllUsersWithCurrentPlans,getAllUsersWithSubscriptionHistory
+  cancelSubscription,getAllUsersWithCurrentPlans,getAllUsersWithSubscriptionHistory,
+  createPaymentIntent
 } from "../controllers/Plan&Subscription Controllers/subscriptionController.js";
 import { protect } from "../middelwares/auth.middleware.js";
 
 const router = express.Router();
 
 // Step 1: Create payment intent
-router.post("/subscribe",protect, subscribeAndActivate);
+router.post("/create-intent",protect, createPaymentIntent);
 
-// Confirm subscription after successful payment  ****not required in testing according to current flow***
-router.post("/confirm",protect, createSubscriptionAfterPayment);
+// Step 2: Activate subscription after successful payment
+router.post("/activate",protect, createSubscriptionAfterPayment);
 
 // Get active subscription
 router.get("/active/:userId", getUserSubscription);

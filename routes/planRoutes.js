@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.post("/",adminAuth, createPlan);
 router.get("/active", getActivePlans);
-router.get("/all",adminAuth, getAllPlans);
+router.get("/all", getAllPlans);
 router.get("/:id",adminAuth, getPlanById);
 router.put("/:id",adminAuth, updatePlan);
 router.delete("/:id",adminAuth, deletePlan);
