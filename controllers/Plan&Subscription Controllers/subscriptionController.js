@@ -15,7 +15,7 @@ const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
 export const createPaymentIntent = async (req, res) => {
   try {
     const { planId } = req.body;
-    const userId=req.user.id
+    const userId = req.user.id;
 
     const plan = await SubscriptionPlan.findById(planId);
     if (!plan || !plan.activeStatus) {
@@ -26,7 +26,10 @@ export const createPaymentIntent = async (req, res) => {
     }
 
     // 💡 check if user already subscribed
-    const existing = await Subscription.findOne({ user: userId, isActive: true });
+    const existing = await Subscription.findOne({
+      user: userId,
+      isActive: true,
+    });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -42,13 +45,13 @@ export const createPaymentIntent = async (req, res) => {
     });
 
     res.status(200).json({
-  success: true,
-  data: {
-    clientSecret: paymentIntent.client_secret, 
-    paymentIntentId: paymentIntent.id,
-  },
-});
-
+      success: true,
+      message:"payment Intent created",
+      data: {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -61,12 +64,16 @@ export const createPaymentIntent = async (req, res) => {
 // 2️⃣ Create Subscription After Payment
 export const createSubscriptionAfterPayment = async (req, res) => {
   try {
-    const { userId, planId, paymentIntentId } = req.body;
+    const { planId, paymentIntentId } = req.body;
+    const userId = req.user.id;
 
     // Retrieve intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["payment_method", "charges.data.payment_method_details"],
-    });
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      {
+        expand: ["payment_method", "charges.data.payment_method_details"],
+      }
+    );
 
     if (paymentIntent.status !== "succeeded") {
       return res.status(400).json({
