@@ -209,11 +209,28 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // 3. Ensure verified
+    // 3. Check verification
     if (!user.isVerified) {
+      const { otp, expiry } = generateOTP();
+      const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+      user.signupOtp = hashedOtp;
+      user.signupOtpExpire = expiry;
+      await user.save();
+
+      const { subject, body } = registrationOtpTemp(user.name, otp);
+      const otpSent = await sendEmail(email, subject, body);
+
+      if (!otpSent.success) {
+        return res.status(500).json({
+          status: 500,
+          message: otpSent.message,
+        });
+      }
+
       return res.status(200).json({
         status: 200,
-        message: "User not verified. Please complete email verification.",
+        message: "Your account is not verified. OTP has been re-sent to your email.",
       });
     }
 
