@@ -211,8 +211,8 @@ export const loginUser = async (req, res) => {
 
     // 3. Ensure verified
     if (!user.isVerified) {
-      return res.status(401).json({
-        status: 401,
+      return res.status(200).json({
+        status: 200,
         message: "User not verified. Please complete email verification.",
       });
     }
