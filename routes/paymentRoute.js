@@ -6,4 +6,7 @@ const router = express.Router();
 
 router.get("/payment", getAllPayments);  // ✅ new route
 router.get("/:userId", getUserPayments);  // ✅ new route
+
+
+
 export default router;

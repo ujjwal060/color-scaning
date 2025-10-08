@@ -24,6 +24,38 @@ const generateRefreshToken = (id, email) => {
   });
 };
 
+export const resendSignupOtp = async (user, email) => {
+  try {
+    const { otp, expiry } = generateOTP();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    user.signupOtp = hashedOtp;
+    user.signupOtpExpire = expiry;
+    await user.save();
+
+    const { subject, body } = registrationOtpTemp(user.name, otp);
+    const otpSent = await sendEmail(email, subject, body);
+
+    if (!otpSent.success) {
+      return {
+        success: false,
+        message: otpSent.message,
+      };
+    }
+
+    return {
+      success: true,
+      message: "OTP has been sent successfully to your email.",
+    };
+  } catch (error) {
+    console.error("Error in resendSignupOtp:", error);
+    return {
+      success: false,
+      message: "Failed to resend OTP. Please try again later.",
+    };
+  }
+};
+
 // ---------------- Signup ----------------
 
 export const signup = async (req, res) => {
@@ -156,25 +188,27 @@ export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // from auth middleware
     const profile = req.fileLocations ? req.fileLocations[0] : null;
- 
+
     const { name, email, phoneNo } = req.body;
- 
+
     const updateData = {};
     if (profile) updateData.profile = profile;
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (phoneNo) updateData.phoneNo = phoneNo;
- 
+
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: "No data provided to update" });
     }
- 
-    const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
- 
+
+    const user = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    }).select("-password");
+
     // if (!profile) {
     //   return res.status(400).json({ message: "No profile image uploaded" });
     // }
- 
+
     res.status(200).json({
       message: "Profile image updated successfully",
       data: user,
@@ -185,6 +219,28 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+export const resendSignupOtpController = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user)
+    return res.status(404).json({ status: 404, message: "User not found" });
+
+  if (user.isVerified)
+    return res
+      .status(400)
+      .json({ status: 400, message: "User already verified" });
+
+  const otpResult = await resendSignupOtp(user, email);
+  if (!otpResult.success) {
+    return res.status(500).json({ status: 500, message: otpResult.message });
+  }
+
+  return res.status(200).json({
+    status: 200,
+    message: "OTP has been re-sent successfully.",
+  });
+};
 
 // ---------------- Login ----------------
 export const loginUser = async (req, res) => {
@@ -211,26 +267,18 @@ export const loginUser = async (req, res) => {
 
     // 3. Check verification
     if (!user.isVerified) {
-      const { otp, expiry } = generateOTP();
-      const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-      user.signupOtp = hashedOtp;
-      user.signupOtpExpire = expiry;
-      await user.save();
-
-      const { subject, body } = registrationOtpTemp(user.name, otp);
-      const otpSent = await sendEmail(email, subject, body);
-
-      if (!otpSent.success) {
+      const otpResult = await resendSignupOtp(user, email);
+      if (!otpResult.success) {
         return res.status(500).json({
           status: 500,
-          message: otpSent.message,
+          message: otpResult.message,
         });
       }
 
       return res.status(200).json({
         status: 200,
-        message: "Your account is not verified. OTP has been re-sent to your email.",
+        message:
+          "Your account is not verified. OTP has been re-sent to your email.",
       });
     }
 
@@ -361,7 +409,7 @@ export const resetPassword = async (req, res) => {
 export const getProfile = async (req, res) => {
   res.json({
     status: 200,
-    message:" Profile fetched successfully",
+    message: " Profile fetched successfully",
     data: {
       _id: req.user._id,
       name: req.user.name,
